@@ -5,9 +5,9 @@
 $ErrorActionPreference = 'SilentlyContinue'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# 后端目录：兼容两种布局（本文件在 作业三 根目录 / 在 前后端代码 目录里）
-$backend = Join-Path $root '前后端代码\backend'
-if (-not (Test-Path $backend)) { $backend = Join-Path $root 'backend' }
+# 后端目录：本脚本放在 前后端代码\ 里，backend 就在同级
+$backend = Join-Path $root 'backend'
+if (-not (Test-Path $backend)) { $backend = Join-Path $root '..\前后端代码\backend' }
 
 $log = Join-Path $root 'startup.log'
 
