@@ -1,0 +1,67 @@
+@startuml
+' 类图看不出"先后顺序"，一次交互要用时序图；这张图讲的是"点功能按钮"全过程
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+autonumber
+
+actor "用户" as U
+participant "room.html\n(RoomPage)" as P
+participant "api.js\n(ApiClient)" as A
+participant "FastAPI\n(ApiController)" as C
+participant "SessionStore" as S
+participant "Database(db.py)" as D
+database "OceanBase\n:2881" as DB
+
+U -> P : ① 输入内容 + 点击【6.提交作业】
+activate P
+
+P -> A : ② action(courseId=3, menuId=6, content)
+activate A
+
+A -> C : ③ POST /api/rooms/3/action\n{"menu_id":6,"content":"…"}\nAuthorization: Bearer &lt;token&gt;
+activate C
+
+C -> S : ④ current_user(request)
+activate S
+S --> C : user_id=10, username=s01
+deactivate S
+
+C -> D : ⑤ _member(3, 10)
+activate D
+D -> DB : SELECT cm.role_id, r.role_name\nFROM class_member cm\nJOIN role r …\nWHERE course_id=3 AND user_id=10
+DB --> D : role_id=3（学生）
+D --> C : member
+deactivate D
+
+C -> D : ⑥ 校验权限：\nSELECT … FROM role_menu\nWHERE role_id=3 AND menu_id=6
+activate D
+D -> DB : SQL
+DB --> D : 命中（学生有 menu_id=6）
+D --> C : allowed
+deactivate D
+
+alt 权限校验通过
+  C -> D : ⑦ INSERT INTO chat_record\nINSERT INTO chat_room_record
+  D -> DB : 两条 INSERT
+  DB --> D : record_id=1000094
+  C --> A : 200 {"code":0,"data":{record_id,…}}
+  A --> P : 返回新记录
+  P -> P : ⑧ loadMessages() 刷新消息流
+  P --> U : 聊天流里出现【提交作业】消息
+else 越权（如学生调 menu_id=8 批改作业）
+  C --> A : 403 {"msg":"当前角色（学生）没有该功能权限（menu_id=8）"}
+  A --> P : 抛出错误（e.status === 403）
+  P --> U : 顶部红条提示"执行失败"，库里一条都不多
+end
+
+deactivate C
+deactivate A
+deactivate P
+
+note over C, DB
+  安全边界在服务器：
+  前端隐藏按钮只是体验，
+  这里第 ⑥ 步才是真正的拦截。
+end note
+
+@enduml

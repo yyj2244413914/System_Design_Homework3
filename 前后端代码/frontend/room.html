@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>聊天室 · 智能课堂</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">🎓</span>智能课堂<span class="tag">RBAC</span></div>
+  <div class="who">
+    <span id="whoName">—</span>
+    <a href="index.html">← 返回课堂列表</a>
+    <a href="#" id="btnLogout">退出</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="msg" class="banner hide"></div>
+
+  <div class="card room-card">
+    <div class="room-head">
+      <div>
+        <h2 id="courseName">加载中…</h2>
+        <div class="meta" id="courseMeta"></div>
+      </div>
+      <div class="myrole">
+        我在本课的身份
+        <div id="myRole" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <div class="chat-log" id="log">
+      <div class="muted small">加载中…</div>
+    </div>
+
+    <div class="composer">
+      <textarea id="content"
+        placeholder="输入内容，再点下面的功能按钮。例：输入请假原因后点【1. 请假申请】；留空直接点按钮则记为“已执行”。"></textarea>
+      <div class="toolbar" id="toolbar">
+        <button class="btn-send" id="btnRefresh" type="button">🔄 刷新消息</button>
+        <span class="divider"></span>
+        <span class="hint-inline" id="tbHint">功能按钮加载中…</span>
+      </div>
+      <div class="hint">
+        按钮由后端按 <code>class_member.role_id → role_menu → menu</code> 算出；
+        就算手动改页面上的按钮，后端仍会再校验一次（越权返回 403）。
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>本课成员 <span class="sub">class_member 表</span></h2>
+    <div class="member-list" id="members"><span class="muted small">加载中…</span></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+const courseId = new URLSearchParams(location.search).get('courseId') || '1';
+const msgBox = document.getElementById('msg');
+const ROLE_ICON = { 1: '👨‍🏫', 2: '🧑‍💻', 3: '🧑‍🎓' };
+const AVATAR_CLASS = { 1: 'a1', 2: 'a2', 3: 'a3' };
+
+let myUsername = '';
+let menus = [];
+let roleIdOf = {};      // username -> role_id（用来给头像/徽标配色）
+
+document.getElementById('btnLogout').onclick = async function (ev) {
+  ev.preventDefault();
+  try { await API.logout(); } catch (e) {}
+  location.href = 'login.html';
+};
+document.getElementById('btnRefresh').onclick = () => loadMessages();
+
+function avatarHtml(name, roleId) {
+  const ch = (name || '?').slice(0, 1);
+  return `<div class="avatar ${AVATAR_CLASS[roleId] || 'a3'}">${esc(ch)}</div>`;
+}
+
+function renderMessages(rows) {
+  const log = document.getElementById('log');
+  if (!rows.length) {
+    log.innerHTML = `<div class="empty">
+        <div class="icon">💬</div>
+        <div>这个聊天室还没有记录</div>
+        <div class="small">点下面的功能按钮产生第一条</div>
+      </div>`;
+    return;
+  }
+  log.innerHTML = rows.map(r => {
+    const mine = r.username === myUsername ? ' mine' : '';
+    const rid = roleIdOf[r.username] || 3;
+    return `
+      <div class="msg${mine}">
+        ${avatarHtml(r.username, rid)}
+        <div class="bubble">
+          <div class="head">
+            <b>${esc(r.username)}</b>
+            <span class="${roleBadgeClass(rid)}">${esc(r.role_name)}</span>
+            <span class="badge menu">${r.menu_id}. ${esc(r.menu_name || '—')}</span>
+          </div>
+          <div class="body">${esc(r.content)}</div>
+          <div class="meta">#${r.record_id}</div>
+        </div>
+      </div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderToolbar() {
+  const tb = document.getElementById('toolbar');
+  const hint = document.getElementById('tbHint');
+  tb.querySelectorAll('.btn-func').forEach(el => el.remove());
+  if (!menus.length) {
+    hint.textContent = '当前角色没有可用的功能按钮';
+    return;
+  }
+  hint.textContent = `我能用的功能（${menus.length} 个）：`;
+  menus.forEach(m => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-func';
+    btn.id = 'menu-' + m.menu_id;          // ★ 与 menu_url 里的 #menu-N 一一对应
+    btn.dataset.url = m.menu_url;
+    btn.textContent = `${m.menu_id}. ${m.menu_name}`;
+    btn.title = m.menu_url;                // 悬停显示真实链接
+    btn.onclick = () => doAction(m);
+    tb.appendChild(btn);
+  });
+}
+
+/* menu_url → 页面内元素 id：'room.html#menu-5' / '#menu-5' 都识别 */
+function anchorIdOf(url, menuId) {
+  const m = /#(menu-\d+)$/.exec(url || '');
+  return m ? m[1] : 'menu-' + menuId;
+}
+
+/* 滚动到某功能按钮并高亮（只定位，不自动执行，避免误操作） */
+function locateMenu(menuId) {
+  const el = document.getElementById('menu-' + menuId);
+  if (!el) {
+    banner(msgBox, `当前角色没有【menu-${menuId}】这个按钮（该角色无此权限）`, false);
+    return;
+  }
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.remove('located');
+  void el.offsetWidth;                     // 重启 CSS 动画
+  el.classList.add('located');
+  banner(msgBox, `已通过链接定位到【${el.textContent.trim()}】按钮，点它执行`, true);
+}
+
+/* 从地址栏取 menu_id：room.html?courseId=1#menu-5 */
+function hashMenuId() {
+  const m = /#menu-(\d+)/.exec(location.hash || '');
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+async function doAction(menu) {
+  const input = document.getElementById('content');
+  try {
+    const ret = await API.action(courseId, menu.menu_id, input.value);
+    input.value = '';
+    banner(msgBox, `已提交：${ret.menu_name}（记录 #${ret.record_id}）`, true);
+    // 把当前功能写进地址栏 → 这个 URL 就成了"直达某个功能"的链接
+    history.replaceState(null, '', '#' + anchorIdOf(menu.menu_url, menu.menu_id));
+    await loadMessages();
+  } catch (e) {
+    banner(msgBox, '执行失败：' + e.message + (e.status === 403 ? '　← 这就是后端的权限校验' : ''), false);
+  }
+}
+
+async function loadMessages() {
+  try {
+    renderMessages(await API.messages(courseId));
+  } catch (e) {
+    document.getElementById('log').innerHTML =
+      `<div class="banner err">加载消息失败：${esc(e.message)}</div>`;
+  }
+}
+
+(async function init() {
+  try {
+    const me = await API.me();
+    myUsername = me.user.username;
+    document.getElementById('whoName').textContent = me.user.username;
+
+    const info = await API.roomMe(courseId);
+
+    // 成员角色映射（用于头像配色与徽标）
+    const NAME2ID = { '授课教师': 1, '助教': 2, '学生': 3 };
+    info.members.forEach(m => { roleIdOf[m.username] = NAME2ID[m.role_name] || 3; });
+
+    document.getElementById('courseName').textContent = info.course.course_name;
+    document.getElementById('courseMeta').textContent =
+      [info.course.class_time, info.course.classroom,
+       '课时 ' + info.course.hours, '学分 ' + info.course.credits].join('　·　');
+    document.getElementById('myRole').innerHTML =
+      `<span class="${roleBadgeClass(info.my_role_id)}"
+             style="padding:5px 14px;font-size:13px">
+         ${ROLE_ICON[info.my_role_id] || '👤'} ${esc(info.my_role)}
+       </span>`;
+
+    menus = info.menus;
+    renderToolbar();
+
+    document.getElementById('members').innerHTML = info.members
+      .map(m => `<span class="member-chip">
+                   ${avatarHtml(m.username, roleIdOf[m.username])}
+                   ${esc(m.username)}
+                   <span class="${roleBadgeClass(roleIdOf[m.username])}">${esc(m.role_name)}</span>
+                 </span>`).join('');
+
+    await loadMessages();
+
+    // 支持用链接直达某个功能：room.html?courseId=1#menu-5
+    const hid = hashMenuId();
+    if (hid) locateMenu(hid);
+    window.addEventListener('hashchange', () => {
+      const id = hashMenuId();
+      if (id) locateMenu(id);
+    });
+  } catch (e) {
+    banner(msgBox, e.status === 403
+      ? '进不去：' + e.message + '（数据权限拦截）'
+      : '初始化失败：' + e.message, false);
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('toolbar').innerHTML = '';
+  }
+})();
+
+setInterval(loadMessages, 10000);
+</script>
+</body>
+</html>

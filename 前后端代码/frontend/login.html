@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · 智能课堂</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+<div class="login-box">
+  <!-- 左：登录表单 -->
+  <div class="login-left">
+    <span class="eyebrow">🌐 前后端分离 · RBAC 权限矩阵</span>
+    <h1>欢迎回到<em>智能课堂</em></h1>
+    <div class="desc">HTML + CSS + JavaScript ↔ FastAPI ↔ OceanBase（127.0.0.1:2881）</div>
+
+    <div id="msg" class="banner hide"></div>
+
+    <form id="loginForm">
+      <label for="username">用户名</label>
+      <input id="username" type="text" value="t01" autocomplete="username" required>
+      <label for="password">密码</label>
+      <input id="password" type="password" value="123456" autocomplete="current-password" required>
+      <button type="submit" id="btnLogin">进入课堂 →</button>
+    </form>
+
+    <div class="demo-accounts">
+      <b>演示账号</b>（密码均为 <code>123456</code>）<br>
+      教师 <code>t01</code> <code>t02</code> <code>t03</code>　
+      助教 <code>a01</code>~<code>a06</code>　
+      学生 <code>s01</code>~<code>s21</code><br>
+      ★ <code>a01</code> 在课程1 是<b>助教</b>、在课程3 是<b>学生</b>，换个聊天室按钮就变
+    </div>
+  </div>
+
+  <!-- 右：数据库连通状态（真去问后端要的） -->
+  <div class="login-right">
+    <h2><span class="dot off" id="dot"></span>数据库连接状态</h2>
+    <p class="note">
+      下面的数据由前端调用 <code style="background:rgba(255,255,255,.18);color:#fff">GET /api/health</code> 取得 ——
+      浏览器不直接连数据库，是后端用 PyMySQL 连 OceanBase。
+    </p>
+
+    <div class="kv">
+      <b>状态</b><span id="hStatus">检测中…</span>
+      <b>主机:端口</b><span id="hAddr" class="mono">—</span>
+      <b>数据库</b><span id="hDb">—</span>
+      <b>账号</b><span id="hUser">—</span>
+      <b>版本</b><span id="hVersion" class="small">—</span>
+      <b>表数量</b><span id="hTables">—</span>
+      <b>用户数</b><span id="hUsers">—</span>
+      <b>聊天记录</b><span id="hRecords">—</span>
+    </div>
+
+    <p class="small" id="hError" style="margin-top:12px;color:#fecaca"></p>
+
+    <div class="spacer"></div>
+    <button class="ghost sm" id="btnRecheck" type="button">重新检测</button>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+async function checkHealth() {
+  const status = document.getElementById('hStatus');
+  const dot = document.getElementById('dot');
+  dot.className = 'dot off';
+  status.textContent = '检测中…';
+  try {
+    const h = await API.health();
+    const on = !!h.ok;
+    dot.className = 'dot ' + (on ? 'on' : 'off');
+    status.textContent = on ? '连接正常' : '连接失败';
+    document.getElementById('hAddr').textContent = h.db_host + ':' + h.db_port;
+    document.getElementById('hDb').textContent = h.database;
+    document.getElementById('hUser').textContent = h.user;
+    document.getElementById('hVersion').textContent = h.version || '—';
+    document.getElementById('hTables').textContent = (h.tables ?? '—') + ' 张';
+    document.getElementById('hUsers').textContent = (h.users ?? '—') + ' 人';
+    document.getElementById('hRecords').textContent = (h.records ?? '—') + ' 条';
+    document.getElementById('hError').textContent = h.error || '';
+  } catch (e) {
+    dot.className = 'dot off';
+    status.textContent = '后端未启动';
+    document.getElementById('hError').textContent =
+      e.message + '（请先运行 启动后端.bat 或 python backend/app.py）';
+  }
+}
+
+document.getElementById('btnRecheck').onclick = checkHealth;
+
+document.getElementById('loginForm').onsubmit = async function (ev) {
+  ev.preventDefault();
+  const box = document.getElementById('msg');
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true;
+  btn.textContent = '登录中…';
+  try {
+    await API.login(document.getElementById('username').value.trim(),
+                    document.getElementById('password').value);
+    location.href = 'index.html';
+  } catch (e) {
+    banner(box, '登录失败：' + e.message, false);
+    btn.disabled = false;
+    btn.textContent = '进入课堂 →';
+  }
+};
+
+checkHealth();
+</script>
+</body>
+</html>

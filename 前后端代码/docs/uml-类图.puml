@@ -1,0 +1,121 @@
+@startuml
+' 用 PlantUML 渲染：https://www.plantuml.com/plantuml  （或 VSCode 装 PlantUML 插件）
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Microsoft YaHei"
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #475569
+  HeaderBackgroundColor #EFF6FF
+}
+
+package "浏览器（前端）" #EFF6FF {
+  class LoginPage <<页面脚本>> {
+    + checkHealth()
+    + submitLogin()
+  }
+  class IndexPage <<页面脚本>> {
+    + load()
+  }
+  class RoomPage <<页面脚本>> {
+    + init()
+    + renderMessages(rows)
+    + renderToolbar()
+    + doAction(menu)
+  }
+  class ApiClient <<前端 API 封装>> {
+    - API_BASE
+    - headers : {}
+    + request(method, url, body)
+    + login(username, password)
+    + me()
+    + roomMe(courseId)
+    + messages(courseId)
+    + action(courseId, menuId, content)
+  }
+  class TokenStore <<登录凭证>> {
+    - KEY = 'ic_token'
+    + get()
+    + set(token)
+  }
+}
+
+interface IHttpApi #F5F3FF {
+  .. 通信协议：HTTP + JSON ..
+  login
+  me
+  roomMe
+  messages
+  action
+}
+
+package "服务器（后端 python.exe:8000）" #ECFDF5 {
+  class ApiController <<路由/控制器>> {
+    - CORS
+    - SESSIONS : {}
+    + login(payload)
+    + me(request)
+    + room_me(courseId, request)
+    + room_messages(courseId, request)
+    + room_action(courseId, payload, request)
+  }
+  class SessionStore <<会话>> {
+    - SESSIONS : {}
+    + new_session(user)
+    + current_user(request)
+  }
+  class Database <<数据访问>> {
+    - conn
+    + query(sql, params)
+    + query_one(sql, params)
+    + execute(sql, params)
+    + health()
+  }
+  class Config <<配置>> {
+    + DB : {}
+    + host = 127.0.0.1
+    + port = 2881
+    + database = Intelligent_Classroom
+    + user = root@sys
+  }
+  class User <<实体>>
+  class ClassMember <<实体>>
+  class ChatRecord <<实体>>
+  class Menu <<实体>>
+  class Role <<实体>>
+  class RoleMenu <<实体>>
+}
+
+' ── 前端内部依赖 ──
+LoginPage ..> ApiClient : «use»
+IndexPage ..> ApiClient : «use»
+RoomPage  ..> ApiClient : «use»
+ApiClient ..> TokenStore : «use»
+
+' ── 跨进程：靠接口契约 ──
+ApiClient   ..> IHttpApi : «use» HTTP+JSON
+ApiController ..|> IHttpApi : «realize»
+
+' ── 后端内部 ──
+ApiController ..> SessionStore : «use»
+ApiController ..> Database : «use» SQL
+ApiController ..> User : «use»
+ApiController ..> ClassMember : «use»
+ApiController ..> ChatRecord : «use»
+ApiController ..> Menu : «use»
+ApiController ..> Role : «use»
+Database *-- Config : «composition»
+
+note bottom of IHttpApi
+  这是前后端唯一的耦合点：
+  只要 URL / JSON 结构不变，后端可换成 Node、Java、PHP，
+  前端一行都不用改。
+end note
+
+note bottom of ClassMember
+  role_id 决定"我在这门课是谁"
+  → role_menu → menu 决定按钮
+end note
+
+@enduml

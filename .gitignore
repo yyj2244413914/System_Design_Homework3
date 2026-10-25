@@ -1,0 +1,33 @@
+# 忽略规则（Python + 前后端项目）
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+*.egg-info/
+.pytest_cache/
+
+# ── 编辑器 / 系统 ──
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ── 运行时产物 ──
+*.log
+*.tmp
+plantuml-temp/
+
+# 说明：以下文件【要提交】
+#   sql/*.sql            建库与初始化脚本（别人 clone 后必须能跑）
+#   docs/*.png           数据流图、UML 图
+#   docs/*.puml          UML 源文件
+#   backend/requirements.txt

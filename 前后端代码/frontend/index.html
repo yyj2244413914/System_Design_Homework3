@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的课堂 · 智能课堂</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">🎓</span>智能课堂<span class="tag">RBAC</span></div>
+  <div class="who">
+    <span id="whoName">—</span>
+    <span class="role" id="whoRoles">—</span>
+    <a href="#" id="btnLogout">退出</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>我加入的课堂</h1>
+    <p>进哪个聊天室由 <code style="background:rgba(255,255,255,.18);color:#fff">class_member</code>
+       决定（数据权限）；进去之后能点哪些按钮，由
+       <code style="background:rgba(255,255,255,.18);color:#fff">class_member.role_id → role_menu → menu</code>
+       算出来（功能权限）。</p>
+    <div class="chips">
+      <span class="chip">10 张表</span>
+      <span class="chip" id="chipCourses">—</span>
+      <span class="chip" id="chipRoles">—</span>
+    </div>
+  </div>
+
+  <div id="msg" class="banner hide"></div>
+
+  <div class="card">
+    <h2>我的课堂 <span class="sub">点卡片进入聊天室</span></h2>
+    <div class="grid" id="courses">
+      <div class="muted small">加载中…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>我的全局角色 <span class="sub">user_role 表</span></h2>
+    <div class="role-list" id="roles"><span class="muted small">加载中…</span></div>
+    <p class="small muted" style="margin-top:12px">
+      全局角色决定"我是谁"；进入某个聊天室后，按钮按 <b>本课角色</b> 计算 ——
+      所以同一个人在不同课程里的功能按钮可能完全不同。
+    </p>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+const ROLE_ICON = { 1: '👨‍🏫', 2: '🧑‍💻', 3: '🧑‍🎓' };
+
+document.getElementById('btnLogout').onclick = async function (ev) {
+  ev.preventDefault();
+  try { await API.logout(); } catch (e) {}
+  location.href = 'login.html';
+};
+
+(async function load() {
+  const box = document.getElementById('msg');
+  try {
+    const me = await API.me();
+    const u = me.user;
+
+    document.getElementById('whoName').textContent =
+      u.username + '（' + (u.major || '—') + ' · ' + (u.grade || '—') + '）';
+    document.getElementById('whoRoles').textContent =
+      me.roles.map(r => r.role_name).join(' / ') || '无角色';
+
+    document.getElementById('chipCourses').textContent = '我的课堂 ' + me.courses.length + ' 门';
+    document.getElementById('chipRoles').textContent = '角色 ' + me.roles.length + ' 个';
+
+    document.getElementById('roles').innerHTML = me.roles.length
+      ? me.roles.map(r => `
+          <span class="badge ${roleBadgeClass(r.role_id)}" style="padding:6px 14px;font-size:13px">
+            ${ROLE_ICON[r.role_id] || '👤'} ${esc(r.role_name)}
+          </span>`).join('')
+      : '<span class="muted">无</span>';
+
+    if (!me.courses.length) {
+      document.getElementById('courses').innerHTML = `
+        <div class="empty">
+          <div class="icon">📚</div>
+          <div>你还没有加入任何课堂</div>
+          <div class="small">（class_member 表里没有你的记录）</div>
+        </div>`;
+      return;
+    }
+
+    document.getElementById('courses').innerHTML = me.courses.map(c => `
+      <div class="course-card">
+        <div class="course-cover"><div class="name">${esc(c.course_name)}</div></div>
+        <div class="course-body">
+          <div class="course-meta">
+            <span>🗓 ${esc(c.class_time)}</span>
+            <span>📍 ${esc(c.classroom)}</span>
+          </div>
+          <div class="course-meta">
+            <span>⏱ 课时 ${c.hours}</span>
+            <span>🎯 学分 ${c.credits}</span>
+            <span>🆔 成员 ${c.member_id}</span>
+          </div>
+          <div class="course-foot">
+            <span class="${roleBadgeClass(c.my_role_id)}">
+              ${ROLE_ICON[c.my_role_id] || '👤'} 我的身份：${esc(c.my_role)}
+            </span>
+            <button class="sm" onclick="location.href='room.html?courseId=${c.course_id}'">
+              进入聊天室 →
+            </button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    banner(box, '加载失败：' + e.message, false);
+    document.getElementById('courses').innerHTML =
+      '<div class="empty"><div class="icon">⚠️</div><div>加载失败，请刷新</div></div>';
+  }
+})();
+</script>
+</body>
+</html>

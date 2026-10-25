@@ -1,0 +1,5 @@
+# 后端依赖（Python 3.10+）
+# 安装：pip install -r requirements.txt
+fastapi>=0.110
+uvicorn>=0.27
+pymysql>=1.0
