@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
-"""数据库访问层：PyMySQL 直连 OceanBase（127.0.0.1:2881）。"""
+"""数据库访问层：PyMySQL 直连 OceanBase（127.0.0.1:2881）。
+
+★ 线程安全：FastAPI 的同步接口跑在线程池里，多个请求会并发执行。
+  PyMySQL 的连接对象不是线程安全的，所以这里用 threading.local() 给每个线程
+  单独一条连接（懒创建、断线自动重连），避免并发时串数据。
+"""
+
+import threading
 
 import pymysql
 from pymysql.cursors import DictCursor
 
 import config
 
-_conn = None
+_local = threading.local()
 
 
 def _connect(with_db: bool = True):
@@ -26,20 +33,23 @@ def _connect(with_db: bool = True):
 
 
 def conn():
-    """可复用连接，断线自动重连。"""
-    global _conn
-    if _conn is None:
-        _conn = _connect()
-        return _conn
+    """取当前线程的连接（没有就创建；断了就重连）。"""
+    c = getattr(_local, "conn", None)
+    if c is None:
+        c = _connect()
+        _local.conn = c
+        return c
     try:
-        _conn.ping(reconnect=True)
+        c.ping(reconnect=True)
+        return c
     except Exception:
         try:
-            _conn.close()
+            c.close()
         except Exception:
             pass
-        _conn = _connect()
-    return _conn
+        c = _connect()
+        _local.conn = c
+        return c
 
 
 def query(sql, params=None):
@@ -65,7 +75,7 @@ def execute(sql, params=None):
 
 
 def health():
-    """健康检查：把"到底连没连上数据库、端口是多少"直接返回给前端。"""
+    """健康检查：把"连没连上数据库、端口是多少、有多少数据"直接返回给前端。"""
     info = {
         "db_host": config.DB["host"],
         "db_port": config.DB["port"],
@@ -82,8 +92,9 @@ def health():
         row = query_one("SELECT VERSION() AS v, DATABASE() AS d")
         info["version"] = row["v"]
         info["database"] = row["d"]
-        info["tables"] = scalar("SELECT COUNT(*) AS c FROM information_schema.tables "
-                                "WHERE table_schema=%s", (config.DB["database"],))
+        info["tables"] = scalar(
+            "SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema=%s",
+            (config.DB["database"],))
         info["users"] = scalar("SELECT COUNT(*) AS c FROM `user`")
         info["records"] = scalar("SELECT COUNT(*) AS c FROM `chat_record`")
         info["ok"] = True

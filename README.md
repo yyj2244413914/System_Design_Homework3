@@ -153,3 +153,34 @@ class_member.role_id（我在这门课是谁）
 
 > 默认配置是本地 OceanBase：`127.0.0.1:2881`、用户 `root@sys`、空密码、库 `Intelligent_Classroom`。
 > 换 MySQL 的话把 `port` 改成 `3306`、`user` 改成 `root` 即可。
+
+也可以改用环境变量覆盖，不用改代码：
+
+```bat
+set DB_HOST=127.0.0.1
+set DB_PORT=3306
+set DB_USER=root
+set DB_PASSWORD=你的密码
+set DB_NAME=Intelligent_Classroom
+python backend\app.py
+```
+
+---
+
+## 七、已知限制与安全说明
+
+这是一个**教学演示项目**，为突出 RBAC 机制做了简化。上生产前需要处理：
+
+| 项目 | 现状 | 生产做法 |
+|---|---|---|
+| 口令存储 | 明文（演示账号 `123456`） | PBKDF2 / bcrypt 加盐摘要 |
+| 会话存储 | 后端内存字典，重启失效 | 数据库/Redis 持久化，或 JWT |
+| CORS | 放开 `*`（为支持直接双击 HTML） | 收紧到具体域名 |
+| 数据库账号 | 写在 `config.py`（支持环境变量覆盖） | 环境变量 / 密钥管理服务，且不用 root |
+| 传输安全 | HTTP | HTTPS |
+| 越权防护 | ✅ **已实现**：前端按权限渲染按钮 + 后端每个动作二次校验 | — |
+| SQL 注入 | ✅ **已防护**：全部参数化查询（`%s` 占位符），无字符串拼接 SQL | — |
+| XSS | ✅ **已防护**：前端所有动态内容经 `esc()` 转义 | — |
+
+> 答辩时可以强调这句：**前端隐藏按钮只是体验，后端 `role_menu` 二次校验才是安全边界** ——
+> 用学生账号手工 `POST /api/rooms/1/action {"menu_id":8}` 会得到 403，数据库一条都不会多。

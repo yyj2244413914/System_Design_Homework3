@@ -39,7 +39,15 @@ app.add_middleware(
 SESSIONS = {}
 
 
+def _purge_expired():
+    """顺手清掉过期会话，避免 SESSIONS 无限增长。"""
+    now = time.time()
+    for key in [k for k, v in SESSIONS.items() if v["expire_at"] < now]:
+        SESSIONS.pop(key, None)
+
+
 def new_session(user):
+    _purge_expired()
     token = secrets.token_hex(16)
     SESSIONS[token] = {"user_id": user["user_id"],
                        "username": user["username"],

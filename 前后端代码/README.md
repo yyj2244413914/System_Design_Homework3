@@ -145,18 +145,27 @@ sql\02_初始化数据.sql   -- 灌数据
 
 ```
 前后端代码/
-├── 启动后端.bat                 一键启动
+├── 启动智慧课堂.bat              ★ 双击启动（检查数据库 → 启动后端 → 开浏览器）
+├── start.ps1                    启动逻辑（bat 调用；UTF-8 BOM）
+├── startup.log                  每次启动的日志（可删，已被 gitignore）
 ├── README.md                    本文件
 ├── backend/
-│   ├── app.py                   FastAPI 入口 + 全部 API + 静态托管
+│   ├── app.py                   FastAPI 入口 + 7 个 API + 静态托管
 │   ├── db.py                    PyMySQL 连接层 + health()
-│   └── config.py                ★ 数据库地址/端口 2881 在这里
-└── frontend/
-    ├── login.html               登录 + 数据库连接状态面板
-    ├── index.html               我的课堂（课程卡片）
-    ├── room.html                聊天室（消息流 + 输入框 + 功能按钮）
-    ├── css/style.css            全部样式
-    └── js/api.js                fetch 统一封装（credentials: 'include'）
+│   ├── config.py                ★ 数据库地址/端口 2881 在这里（支持环境变量覆盖）
+│   └── requirements.txt
+├── frontend/
+│   ├── login.html               登录 + 数据库连接状态面板
+│   ├── index.html               我的课堂（课程卡片）
+│   ├── room.html                聊天室（消息流 + 输入框 + 功能按钮）
+│   ├── css/style.css            全部样式
+│   └── js/api.js                fetch 统一封装（Cookie / Bearer Token 双认证）
+└── docs/
+    ├── DFD-顶层图.png / DFD-0层图.png
+    ├── DFD-1层图-P2读取权限菜单.png / DFD-1层图-P4执行功能按钮.png
+    ├── 数据字典.md
+    ├── uml-类图.puml / uml-组件图.puml / uml-时序图.puml
+    └── UML类图.png
 ```
 
 ---

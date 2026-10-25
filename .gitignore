@@ -26,15 +26,12 @@ desktop.ini
 *.tmp
 plantuml-temp/
 
+# ── 作业的插图 ──
+docs/
+
+
 # 说明：以下文件【要提交】
 #   sql/*.sql            建库与初始化脚本（别人 clone 后必须能跑）
-#   docs/*.png           数据流图、UML 图
-#   docs/*.puml          UML 源文件
 #   backend/requirements.txt
 
-# 启动脚本生成的日志
-startup.log
 
-
-# 启动脚本生成的日志
-startup.log
