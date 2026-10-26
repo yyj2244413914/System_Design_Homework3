@@ -36,16 +36,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.middleware("http")
-async def no_cache_for_frontend(request, call_next):
-    """页面与静态资源禁止浏览器缓存，避免改了前端刷新看不到效果。"""
-    response = await call_next(request)
-    if request.url.path.endswith((".html", ".css", ".js")) or request.url.path == "/":
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-    return response
-
 # ── 会话：演示用内存字典（重启后需重新登录）──
 SESSIONS = {}
 
