@@ -36,10 +36,11 @@ Log '   智能课堂 · 启动'
 Log '============================================================'
 Log ''
 
-# 用隐藏的常驻会话把 WSL 发行版撑住：发行版一停，里面的 seekdb.service 就跟着停
+# 在发行版内部脱管一个常驻进程把 WSL 撑住：发行版一停，里面的 seekdb.service 就跟着停。
+# 用 setsid/nohup，即使 wsl.exe 客户端退出，发行版仍保持 Running。
 function Start-OceanBase() {
-    Start-Process -FilePath 'wsl.exe' -WindowStyle Hidden `
-        -ArgumentList '-d', 'oceanbase-desktop', '-u', 'root', '--', 'bash', '-lc', 'exec sleep 100000'
+    & wsl.exe -d oceanbase-desktop -u root -- bash -lc `
+        'pgrep -f "sleep 100000" >/dev/null || setsid nohup sleep 100000 >/dev/null 2>&1 </dev/null &' | Out-Null
 }
 
 # ───────── ① 数据库 2881 ─────────
