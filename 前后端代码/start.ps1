@@ -36,22 +36,37 @@ Log '   智能课堂 · 启动'
 Log '============================================================'
 Log ''
 
+# 用隐藏的常驻会话把 WSL 发行版撑住：发行版一停，里面的 seekdb.service 就跟着停
+function Start-OceanBase() {
+    Start-Process -FilePath 'wsl.exe' -WindowStyle Hidden `
+        -ArgumentList '-d', 'oceanbase-desktop', '-u', 'root', '--', 'bash', '-lc', 'exec sleep 100000'
+}
+
 # ───────── ① 数据库 2881 ─────────
 if (Test-Port 2881) {
     Log '[1/3] 数据库 2881 ........... 已在运行'
 } else {
     Log '[1/3] 数据库 2881 ........... 未运行，正在启动 OceanBase'
     if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
-        Start-Process -FilePath 'wsl.exe' -ArgumentList '-d', 'oceanbase-desktop'
-        Log '      已打开 WSL 窗口，等待数据库端口就绪（最多 45 秒）...'
+        Start-OceanBase
+        Log '      已拉起 WSL 常驻会话，等待数据库端口就绪（最多 45 秒）...'
     } else {
         Log '      本机没有 wsl.exe，请手动启动数据库'
     }
     if (Wait-Port 2881 45) {
         Log '      数据库已就绪'
     } else {
-        Log '      [!] 数据库仍未就绪。请手动启动 OceanBase 后再运行本脚本'
-        Log '      [!] 不影响继续：后端仍会启动，只是登录后没有数据'
+        Log '      端口拒绝连接，疑似 WSL 端口转发失效，重置后重试...'
+        Start-Process -FilePath 'wsl.exe' -ArgumentList '--shutdown' -Wait -WindowStyle Hidden
+        Start-Sleep -Seconds 3
+        Start-OceanBase
+        Log '      已重新拉起，再等最多 60 秒...'
+        if (Wait-Port 2881 60) {
+            Log '      数据库已就绪'
+        } else {
+            Log '      [!] 数据库仍未就绪。请手动启动 OceanBase 后再运行本脚本'
+            Log '      [!] 不影响继续：后端仍会启动，只是登录后没有数据'
+        }
     }
 }
 Log ''
