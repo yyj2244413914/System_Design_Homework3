@@ -19,12 +19,7 @@
 <div class="wrap">
   <div class="hero">
     <h1>我加入的课堂</h1>
-    <p>进哪个聊天室由 <code style="background:rgba(255,255,255,.18);color:#fff">class_member</code>
-       决定（数据权限）；进去之后能点哪些按钮，由
-       <code style="background:rgba(255,255,255,.18);color:#fff">class_member.role_id → role_menu → menu</code>
-       算出来（功能权限）。</p>
     <div class="chips">
-      <span class="chip">10 张表</span>
       <span class="chip" id="chipCourses">—</span>
       <span class="chip" id="chipRoles">—</span>
     </div>
@@ -33,19 +28,15 @@
   <div id="msg" class="banner hide"></div>
 
   <div class="card">
-    <h2>我的课堂 <span class="sub">点卡片进入聊天室</span></h2>
+    <h2>我的课堂</h2>
     <div class="grid" id="courses">
       <div class="muted small">加载中…</div>
     </div>
   </div>
 
   <div class="card">
-    <h2>我的全局角色 <span class="sub">user_role 表</span></h2>
+    <h2>我的角色</h2>
     <div class="role-list" id="roles"><span class="muted small">加载中…</span></div>
-    <p class="small muted" style="margin-top:12px">
-      全局角色决定"我是谁"；进入某个聊天室后，按钮按 <b>本课角色</b> 计算 ——
-      所以同一个人在不同课程里的功能按钮可能完全不同。
-    </p>
   </div>
 </div>
 

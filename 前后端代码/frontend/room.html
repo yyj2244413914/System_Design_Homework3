@@ -36,22 +36,17 @@
     </div>
 
     <div class="composer">
-      <textarea id="content"
-        placeholder="输入内容，再点下面的功能按钮。例：输入请假原因后点【1. 请假申请】；留空直接点按钮则记为“已执行”。"></textarea>
+      <textarea id="content" placeholder="输入内容，再点下面的功能按钮"></textarea>
       <div class="toolbar" id="toolbar">
-        <button class="btn-send" id="btnRefresh" type="button">🔄 刷新消息</button>
+        <button class="btn-send" id="btnRefresh" type="button">🔄 刷新</button>
         <span class="divider"></span>
-        <span class="hint-inline" id="tbHint">功能按钮加载中…</span>
-      </div>
-      <div class="hint">
-        按钮由后端按 <code>class_member.role_id → role_menu → menu</code> 算出；
-        就算手动改页面上的按钮，后端仍会再校验一次（越权返回 403）。
+        <span class="hint-inline" id="tbHint"></span>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2>本课成员 <span class="sub">class_member 表</span></h2>
+    <h2>本课成员</h2>
     <div class="member-list" id="members"><span class="muted small">加载中…</span></div>
   </div>
 </div>
@@ -114,10 +109,10 @@ function renderToolbar() {
   const hint = document.getElementById('tbHint');
   tb.querySelectorAll('.btn-func').forEach(el => el.remove());
   if (!menus.length) {
-    hint.textContent = '当前角色没有可用的功能按钮';
+    hint.textContent = '当前角色没有可用功能';
     return;
   }
-  hint.textContent = `我能用的功能（${menus.length} 个）：`;
+  hint.textContent = '';
   menus.forEach(m => {
     const btn = document.createElement('button');
     btn.type = 'button';
