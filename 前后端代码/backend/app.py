@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+import pymysql
 
 import config
 import db
@@ -270,6 +271,20 @@ async def http_error(request: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code,
                         content={"code": exc.status_code, "data": None,
                                  "msg": exc.detail})
+
+
+@app.exception_handler(pymysql.err.MySQLError)
+async def database_error(request: Request, exc):
+    """数据库连不上时给友好提示（而不是 500 Internal Server Error）。
+
+    常见场景：OceanBase 没启动。前端据此提示用户去双击 启动智慧课堂.bat。
+    """
+    msg = "数据库未连接，请先启动 OceanBase(2881) 后重试"
+    if isinstance(exc, pymysql.err.OperationalError):
+        msg = "数据库未连接（127.0.0.1:{}），请先启动 OceanBase 后重试".format(
+            config.DB["port"])
+    return JSONResponse(status_code=503,
+                        content={"code": 503, "data": None, "msg": msg})
 
 
 # ───────────────────────── 静态前端（必须放在最后）─────────────────────────

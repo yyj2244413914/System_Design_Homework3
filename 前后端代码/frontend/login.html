@@ -96,16 +96,6 @@ document.getElementById('loginForm').onsubmit = async function (ev) {
 };
 
 checkHealth();
-
-// 已经登录过（有有效 Cookie / Token）就直接进首页，省得重复登录
-(async function autoEnter() {
-  try {
-    await API.me();
-    location.replace('index.html');
-  } catch (e) {
-    /* 未登录：正常停在登录页 */
-  }
-})();
 </script>
 </body>
 </html>
