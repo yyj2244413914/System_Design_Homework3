@@ -6,7 +6,7 @@
   <title>聊天室 · 智能课堂</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="room-page">
 <header class="topbar">
   <div class="brand"><span class="logo">🎓</span>智能课堂<span class="tag">RBAC</span></div>
   <div class="who">
@@ -45,7 +45,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card members-card">
     <h2>本课成员</h2>
     <div class="member-list" id="members"><span class="muted small">加载中…</span></div>
   </div>
@@ -104,8 +104,8 @@ function renderMessages(rows) {
   }).join('');
 
   // 首次进入自动滚到最新一条；后续 10 秒自动刷新不动用户滚动位置
-  if (firstLoad && log.lastElementChild) {
-    log.lastElementChild.scrollIntoView({ block: 'end' });
+  if (firstLoad) {
+    log.scrollTop = log.scrollHeight;
     firstLoad = false;
   }
 }
