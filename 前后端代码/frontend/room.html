@@ -61,6 +61,7 @@ const AVATAR_CLASS = { 1: 'a1', 2: 'a2', 3: 'a3' };
 let myUsername = '';
 let menus = [];
 let roleIdOf = {};      // username -> role_id（用来给头像/徽标配色）
+let firstLoad = true;   // 首次渲染后滚到最新一条
 
 document.getElementById('btnLogout').onclick = async function (ev) {
   ev.preventDefault();
@@ -101,7 +102,12 @@ function renderMessages(rows) {
         </div>
       </div>`;
   }).join('');
-  log.scrollTop = log.scrollHeight;
+
+  // 首次进入自动滚到最新一条；后续 10 秒自动刷新不动用户滚动位置
+  if (firstLoad && log.lastElementChild) {
+    log.lastElementChild.scrollIntoView({ block: 'end' });
+    firstLoad = false;
+  }
 }
 
 function renderToolbar() {

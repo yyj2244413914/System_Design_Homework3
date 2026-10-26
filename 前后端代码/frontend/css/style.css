@@ -511,18 +511,14 @@ tbody tr:hover { background: #f8fafc; }
 .room-head .myrole .badge { font-size: 12.5px; padding: 3px 12px; }
 
 .chat-log {
-  height: 440px;
-  overflow-y: auto;
+  /* 不限制高度：所有聊天记录一次性铺开，整页滚动查看历史 */
   padding: 20px 22px 24px;
   background:
     linear-gradient(180deg, #f8fafc, #f1f5f9);
   display: flex;
   flex-direction: column;
   gap: 14px;
-  scroll-behavior: smooth;
 }
-.chat-log::-webkit-scrollbar { width: 8px; }
-.chat-log::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
 .msg {
   display: flex;
@@ -665,7 +661,7 @@ tbody tr:hover { background: #f8fafc; }
   .hero { padding: 24px 20px; }
   .room-head { flex-direction: column; align-items: flex-start; }
   .room-head .myrole { text-align: left; }
-  .chat-log { height: 360px; padding: 16px 14px; }
+  .chat-log { padding: 16px 14px; }
   .msg { max-width: 92%; }
   .topbar { padding: 10px 14px; }
   .topbar .who { gap: 8px; font-size: 12.5px; }
