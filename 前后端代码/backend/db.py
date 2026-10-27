@@ -86,6 +86,16 @@ def ensure_oceanbase(wait_seconds=25):
     return False
 
 
+def stop_oceanbase():
+    """关闭 OceanBase（终止 WSL 里的 oceanbase-desktop 发行版，释放 2881）。"""
+    try:
+        subprocess.run(["wsl.exe", "-t", "oceanbase-desktop"], timeout=10,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except Exception:
+        pass
+
+
 def _connect(with_db: bool = True):
     kw = dict(
         host=config.DB["host"],

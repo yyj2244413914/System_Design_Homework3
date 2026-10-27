@@ -49,6 +49,7 @@ const API = {
   post(url, body) { return this.request('POST', url, body); },
 
   health() { return this.request('GET', '/api/health'); },
+  ping() { return this.request('GET', '/api/ping'); },
 
   async login(username, password) {
     const data = await this.post('/api/login', { username, password });
@@ -68,6 +69,9 @@ const API = {
     return this.post('/api/rooms/' + courseId + '/action', { menu_id: menuId, content });
   },
 };
+
+/* 心跳：每隔 5 秒告诉后端"页面还开着"；页面全部关闭 30 秒后，后端自动停库并退出 */
+setInterval(() => { API.ping().catch(() => {}); }, 5000);
 
 /* 小工具 */
 function esc(s) {

@@ -1,13 +1,13 @@
-﻿# 智能课堂 · 启动逻辑
+# 智能课堂 · 启动逻辑
 # ① 检查/启动 数据库 2881   ② 检查/启动 后端 8000   ③ 等端口就绪   ④ 打开登录页
 # 全过程写入 启动日志.txt，方便排查
 
 $ErrorActionPreference = 'SilentlyContinue'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# 后端目录：本脚本放在 前后端代码\ 里，backend 就在同级
-$backend = Join-Path $root 'backend'
-if (-not (Test-Path $backend)) { $backend = Join-Path $root '..\前后端代码\backend' }
+# 后端目录：本脚本在 前后端代码\启动器\ 里，backend 在上一级
+$backend = Join-Path $root '..\backend'
+if (-not (Test-Path $backend)) { $backend = Join-Path $root '..\..\前后端代码\backend' }
 
 $log = Join-Path $root 'startup.log'
 

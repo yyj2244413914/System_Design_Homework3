@@ -9,6 +9,7 @@
 
 import os
 import secrets
+import threading
 import time
 
 from fastapi import Body, FastAPI, HTTPException, Request, Response
@@ -35,6 +36,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── 空闲看门狗：浏览器页面全部关闭后，自动停库并退出后端 ──
+# 前端每隔 5 秒发一次 /api/ping 心跳；超过 30 秒没有心跳，就认为页面已关闭。
+LAST_PING = None
+IDLE_SHUTDOWN_SECONDS = 30
+
+
+def _idle_watchdog():
+    while True:
+        time.sleep(10)
+        if LAST_PING is not None and time.time() - LAST_PING > IDLE_SHUTDOWN_SECONDS:
+            db.stop_oceanbase()
+            os._exit(0)
+
+
+threading.Thread(target=_idle_watchdog, daemon=True).start()
 
 # ── 会话：演示用内存字典（重启后需重新登录）──
 SESSIONS = {}
@@ -122,6 +139,14 @@ def health():
     info = db.health()
     return {"code": 0 if info["ok"] else 1, "data": info,
             "msg": "数据库连接正常" if info["ok"] else info["error"]}
+
+
+@app.get("/api/ping")
+def ping():
+    """前端心跳：页面还开着就每隔几秒打一次，用于"页面全关后自动停服"。"""
+    global LAST_PING
+    LAST_PING = time.time()
+    return {"code": 0, "msg": "pong", "data": None}
 
 
 # ───────────────────────── 当前用户 + 我的课堂 ─────────────────────────
