@@ -134,7 +134,8 @@ def me(request: Request):
         raise HTTPException(status_code=401, detail="未登录")
     courses = db.query(
         "SELECT c.course_id, c.course_name, c.class_time, c.classroom, c.hours, c.credits, "
-        "       r.role_id AS my_role_id, r.role_name AS my_role, cm.member_id "
+        "       r.role_id AS my_role_id, r.role_name AS my_role, cm.member_id, "
+        "       (SELECT COUNT(*) FROM `class_member` cm2 WHERE cm2.course_id = c.course_id) AS member_count "
         "FROM `class_member` cm "
         "JOIN `course` c ON c.course_id = cm.course_id "
         "JOIN `role` r ON r.role_id = cm.role_id "
