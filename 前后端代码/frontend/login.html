@@ -96,6 +96,8 @@ document.getElementById('loginForm').onsubmit = async function (ev) {
 };
 
 checkHealth();
+// 每 3 秒自动检测一次：断联时后端会自动拉起 OceanBase，这里实时刷新红/绿状态
+setInterval(checkHealth, 3000);
 </script>
 </body>
 </html>
